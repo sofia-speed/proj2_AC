@@ -90,13 +90,13 @@ MenuPrincipal:
 	
 PLACE 2100H
 DisplayBalanca:
-	String "PROD            "	
-	String "                "
-	String "PESO            "	
+	String "  MODO BALANCA  "
+	String "----------------"
+	String " NENHUM PRODUTO "
+	String "  SELECIONADO   "
 	String "                "	
-	String "PRECO           "	
-	String "          EUR/KG"	
-	String "TOTAL        EUR"	
+	String "                "	
+	String "                "	
                
 	
 PLACE 0000H
@@ -265,7 +265,7 @@ MostraBalanca:
 	    MOV R1, Display_end
 	    MOV R2, DisplayBalanca
 CicloBalanca:  
-	    MOVB R3, [R2]        ; lê o caractere da string 
+	    MOVB R3, [R2]        ; le o caractere da string 
 	    MOVB [R0], R3        ; escreve o caractere no display 
 	    ADD R0, 1            ; incrementa apontador do display
 	    ADD R2, 1            ; incrementa apontador da string
