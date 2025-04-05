@@ -11,14 +11,72 @@ PESO				EQU		1F0H
 Display				EQU			200H
 Display_end 		EQU			26FH
 CaracterVazio 		EQU 		20H	
+Tamanho_String		EQU			16
 
 ;valores
 CODIGO_MIN		EQU		100
 CODIGO_MAX		EQU		124
-PESO_MAX		EQU		30
-
+PESO_MAX		EQU		3000	;30kg = 3000g
 
 STACK_PRT			EQU			1000H
+
+;preco dos produtos (em centimos!)
+PLACE 4000H
+BaseDados:
+	TABLE 25
+	Word 534
+	Word 187
+	Word 187
+	Word 356
+	Word 446
+	Word 258
+	Word 446
+	Word 1781
+	Word 160
+	Word 222
+	Word 104
+	Word 114
+	Word 228
+	Word 523
+	Word 619
+	Word 143
+	Word 142
+	Word 219
+	Word 095
+	Word 362
+	Word 407
+	Word 892
+	Word 1839
+	Word 803
+	Word 2025
+	
+PLACE 4200H
+NomesProdutos:
+	String "Arroz          " 
+	String "Feijao         "
+	String "Batata         "
+	String "Tomate         "
+	String "Cebola         "
+	String "Alho           "
+	String "Cenoura        "
+	String "Brocolos       "
+	String "Espinafre      "
+	String "Maca           "
+	String "Banana         "
+	String "Laranja        "
+	String "Morango        "
+	String "Uva            "
+	String "Melancia       "
+	String "Pao            "
+	String "Leite          "
+	String "Ovos           "
+	String "Queijo         "
+	String "Frango         "
+	String "Carne          "
+	String "Peixe          "
+	String "Massa          "
+	String "Azeite         "
+	String "Sal            "
 
 PLACE 2000H
 MenuPrincipal:
@@ -30,9 +88,16 @@ MenuPrincipal:
 	String "    REGISTOS    "
 	String "                "
 	
-PLACE 2080H
-ModoBalanca:
-	; cenas
+PLACE 2100H
+DisplayBalanca:
+	String "PROD            "	
+	String "                "
+	String "PESO            "	
+	String "                "	
+	String "PRECO           "	
+	String "          EUR/KG"	
+	String "TOTAL        EUR"	
+               
 	
 PLACE 0000H
 Inicio:	
@@ -59,6 +124,7 @@ Le_nr:
 	MOVB R3, [R2]
 	
 	CMP R3, 1	;nao avanca enquanto OK=0
+	JNE Le_nr
 	 MOVB R1, [R0]	 ; Le o valor do periferico
 	CMP R1, 1      
 	 JEQ OModoBalanca
@@ -181,20 +247,44 @@ Le_codigo:
 	JGT ERRO_Sel
 
 	; Verifica o peso
-	MOV R7, [R5]
-	MOV R0, PESO_MAX
-	CMP R7, R0
+	MOV R7, [R5]		; R7 = PESO
+	MOV R0, PESO_MAX	
+	CMP R7, R0	
+	JGT ERRO_Peso	;se o peso exceder 30kg mostra erro
+ProdutoPesado:
+	
 
 	JMP OModoBalanca
 
 MostraBalanca:
-	RET
+	    PUSH R0
+	    PUSH R1
+	    PUSH R2      ; string
+	    PUSH R3      
+	    MOV R0, Display
+	    MOV R1, Display_end
+	    MOV R2, DisplayBalanca
+CicloBalanca:  
+	    MOVB R3, [R2]        ; lê o caractere da string 
+	    MOVB [R0], R3        ; escreve o caractere no display 
+	    ADD R0, 1            ; incrementa apontador do display
+	    ADD R2, 1            ; incrementa apontador da string
+	    CMP R0, R1           ; verifica se já chegou ao fim do Display
+	    JLE CicloBalanca
+	    POP R3
+	    POP R2
+	    POP R1
+	    POP R0
+	    RET
 
 NenhumProdutoSel:
 	JMP OModoBalanca
 
 ERRO_Sel:
 	JMP MostraProdutos
+	
+ERRO_Peso:
+	JMP OModoBalanca
 
 MostraProdutos:
 	JMP OModoBalanca
