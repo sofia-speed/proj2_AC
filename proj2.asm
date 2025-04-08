@@ -236,19 +236,16 @@ OModoBalanca:
 BalancaCiclo:
 	; Verifica se CHANGE=1
 	MOVB R6, [R3]
-	MOV R7, 1
-	CMP R6, R7
+	CMP R6, 1
 	JEQ MostraProdutos
 
 Le_codigo:
-	MOV R6, [R1]      ; lê SEL_NR_MENU
+	MOVB R6, [R1]      ; lê SEL_NR_MENU
 	MOVB R7, [R2]     ; lê OK
-	MOV R0, 1
-	CMP R7, R0
-	JEQ Le_codigo     ; espera até OK = 1
+	CMP R7, 1
+	JNE Le_codigo    	 ; espera até OK = 1
 
-	MOV R0, 0
-	CMP R6, R0
+	CMP R6, 0
 	JEQ NenhumProdutoSel
 
 	; Verifica se o codigo esta dentro do intervalo valido
@@ -257,35 +254,45 @@ Le_codigo:
 	JLT ERRO_Sel
 	MOV R0, CODIGO_MAX
 	CMP R6, R0
-	JGT ERRO_Sel
+	JG ERRO_Sel
 
+le_peso:
 	; Verifica o peso
-	MOV R7, [R5]		; R7 = PESO
+	MOVB R7, [R5]				; R7 = PESO
 	MOV R0, PESO_MAX	
 	CMP R7, R0	
-	JGT ERRO_Peso	;se o peso exceder 30kg mostra erro
+	JG ERRO_Peso			;se o peso exceder 30kg
 ProdutoPesado:
 	
 	JMP BalancaCiclo
 
 
 NenhumProdutoSel:
-	MOVB R6, [R4]		; Le CANCEL
+	MOV R10, DisplayBalancaVazia	;mostra que nao foi selecionado nenhum produto
+	CALL MostraDisplay
+	MOVB R6, [R4]					; Le CANCEL
 	CMP R6,1
 	JEQ  Ligado
 	MOVB R6, [R2]
-	CMP R6, 1		; Le OK
-	JNE NenhumProdutoSel
-	JMP MostraProdutos
+	CMP R6, 1						; Le OK
+	JNE NenhumProdutoSel			; espera ate OK = 1 para avancar
+	JMP MostraProdutos	
 
 ERRO_Sel:
 	JMP MostraProdutos
 	
 ERRO_Peso:
-	JMP OModoBalanca
+	MOV R6, 0
+	MOVB [R5], R6
+	JMP le_peso
 
 MostraProdutos:
-	JMP OModoBalanca
+	CALL LimpaPerifericos
+	;instrucoes
+	MOVB R6, [R2]					; le OK
+	CMP R6, 1
+	JNE MostraProdutos		; espera por OK=1 para avancar
+	JMP BalancaCiclo
 
 
 ORegistos:
