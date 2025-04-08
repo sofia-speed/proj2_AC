@@ -16,7 +16,7 @@ Tamanho_String		EQU			16
 ;valores
 CODIGO_MIN		EQU		100
 CODIGO_MAX		EQU		124
-PESO_MAX		EQU		30000	;30kg = 3000g
+PESO_MAX		EQU		30000	;30kg = 30.000g
 
 STACK_PRT			EQU			1000H
 
@@ -52,31 +52,31 @@ BaseDados:
 	
 PLACE 4200H
 NomesProdutos:
-	String "Uvas           "
-	String "Melancia       "
-	String "Ananás         "
-	String "Kiwi           "
-	String "Pêssego        "
-	String "Banana         "
-	String "Morango        "
-	String "Framboesa      "
-	String "Laranja        "
-	String "Tangerina      "
-	String "Cenoura        "
-	String "Batata         "
-	String "Nabo           "
-	String "Beterraba      "
-	String "Alho           "
-	String "Cebola         "
-	String "Ervilha        "
-	String "Lentilhas      "
-	String "Trigo          "
-	String "Milho          "
-	String "Favas          "
-	String "Castanhas      "
-	String "Noz            "
-	String "Amendoim       "
-	String "Café           "
+	String "Uvas            "
+	String "Melancia        "
+	String "Ananás          "
+	String "Kiwi            "
+	String "Pêssego         "
+	String "Banana          "
+	String "Morango         "
+	String "Framboesa       "
+	String "Laranja         "
+	String "Tangerina       "
+	String "Cenoura         "
+	String "Batata          "
+	String "Nabo            "
+	String "Beterraba       "
+	String "Alho            "
+	String "Cebola          "
+	String "Ervilha         "
+	String "Lentilhas       "
+	String "Trigo           "
+	String "Milho           "
+	String "Favas           "
+	String "Castanhas       "
+	String "Noz             "
+	String "Amendoim        "
+	String "Café            "
 
 PLACE 2000H
 MenuPrincipal:
@@ -260,6 +260,7 @@ le_peso:
 	CMP R7, R0	
 	JGT ERRO_Peso			;se o peso exceder 30kg
 ProdutoPesado:
+	CALL ConverteSel
 	
 	JMP BalancaCiclo
 
@@ -300,3 +301,19 @@ OLimpaRegistos:
 	
 MostraErro:
 	JMP Ligado
+	
+ConverteSel:
+	PUSH R0
+	PUSH R1
+	PUSH R2
+	MOV R0, SEL_NR_MENU
+	MOV R1, [R0]		; R1 = SEL_NR_MENU
+	MOV R2, 100
+	SUB R1, R2		; R1 = R1-100
+	MOV R2, 16
+	MUL R1, R2		; R1 = R1x16
+	ADD R1, NomesProdutos 		; R1 = R1+4200H
+	POP R2
+	POP R1
+	POP R0
+	RET
