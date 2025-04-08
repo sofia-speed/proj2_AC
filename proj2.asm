@@ -16,7 +16,7 @@ Tamanho_String		EQU			16
 ;valores
 CODIGO_MIN		EQU		100
 CODIGO_MAX		EQU		124
-PESO_MAX		EQU		3000	;30kg = 3000g
+PESO_MAX		EQU		30000	;30kg = 3000g
 
 STACK_PRT			EQU			1000H
 
@@ -241,11 +241,8 @@ BalancaCiclo:
 
 Le_codigo:
 	MOVB R6, [R1]      ; lê SEL_NR_MENU
-	MOVB R7, [R2]     ; lê OK
-	CMP R7, 1
-	JNE Le_codigo    	 ; espera até OK = 1
 
-	CMP R6, 0
+	CMP R6, 0		; se SEL_NR_MENU = 0, mostra que nenhum produto foi selecionado
 	JEQ NenhumProdutoSel
 
 	; Verifica se o codigo esta dentro do intervalo valido
@@ -254,14 +251,14 @@ Le_codigo:
 	JLT ERRO_Sel
 	MOV R0, CODIGO_MAX
 	CMP R6, R0
-	JG ERRO_Sel
+	JGT ERRO_Sel
 
 le_peso:
 	; Verifica o peso
-	MOVB R7, [R5]				; R7 = PESO
+	MOV R7, [R5]				; R7 = PESO
 	MOV R0, PESO_MAX	
 	CMP R7, R0	
-	JG ERRO_Peso			;se o peso exceder 30kg
+	JGT ERRO_Peso			;se o peso exceder 30kg
 ProdutoPesado:
 	
 	JMP BalancaCiclo
@@ -288,10 +285,10 @@ ERRO_Peso:
 
 MostraProdutos:
 	CALL LimpaPerifericos
-	;instrucoes
+CicloProdutos:
 	MOVB R6, [R2]					; le OK
 	CMP R6, 1
-	JNE MostraProdutos		; espera por OK=1 para avancar
+	JNE CicloProdutos		; espera por OK=1 para avancar
 	JMP BalancaCiclo
 
 
