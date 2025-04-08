@@ -52,31 +52,31 @@ BaseDados:
 	
 PLACE 4200H
 NomesProdutos:
-	String "Arroz          " 
-	String "Feijao         "
-	String "Batata         "
-	String "Tomate         "
-	String "Cebola         "
-	String "Alho           "
-	String "Cenoura        "
-	String "Brocolos       "
-	String "Espinafre      "
-	String "Maca           "
-	String "Banana         "
-	String "Laranja        "
-	String "Morango        "
-	String "Uva            "
-	String "Melancia       "
-	String "Pao            "
-	String "Leite          "
-	String "Ovos           "
-	String "Queijo         "
-	String "Frango         "
-	String "Carne          "
-	String "Peixe          "
-	String "Massa          "
-	String "Azeite         "
-	String "Sal            "
+	String "Uvas           "
+	String "Melancia       "
+	String "Ananás         "
+	String "Kiwi           "
+	String "Pêssego        "
+	String "Banana         "
+	String "Morango        "
+	String "Framboesa      "
+	String "Laranja        "
+	String "Tangerina      "
+	String "Cenoura        "
+	String "Batata         "
+	String "Nabo           "
+	String "Beterraba      "
+	String "Alho           "
+	String "Cebola         "
+	String "Ervilha        "
+	String "Lentilhas      "
+	String "Trigo          "
+	String "Milho          "
+	String "Favas          "
+	String "Castanhas      "
+	String "Noz            "
+	String "Amendoim       "
+	String "Café           "
 
 PLACE 2000H
 MenuPrincipal:
@@ -89,14 +89,24 @@ MenuPrincipal:
 	String "                "
 	
 PLACE 2100H
-DisplayBalanca:
+DisplayBalancaVazia:
 	String "  MODO BALANCA  "
 	String "----------------"
 	String " NENHUM PRODUTO "
 	String "  SELECIONADO   "
 	String "                "	
+	String "OK PARA         "	
+	String "CONTINUAR       "	
+	
+ PLACE 2200H
+DisplayBalanca:
+	String "                "		; nome do produto
 	String "                "	
-	String "                "	
+	String "PESO:           "	
+	String "                "		; peso do produto
+	String "PRECO           "	
+	String "                "		; preco do produto por kg
+	String "TOTAL           "	
                
 	
 PLACE 0000H
@@ -115,7 +125,7 @@ Liga:
 		CMP R1, 1
 		JNE Liga
 Ligado:	
-		MOV R2, MenuPrincipal
+		MOV R10, MenuPrincipal
 		CALL MostraDisplay
 		CALL LimpaPerifericos
 Le_nr:
@@ -138,23 +148,24 @@ Le_nr:
 		
 ;------------------
 ; Mostra Display
-;------------------		
+;------------------	
+; R10 guarda a memoria dos displays	
 MostraDisplay:
 	    PUSH R0
 	    PUSH R1
-	    PUSH R2      ; string
+	    PUSH R10      ; string
 	    PUSH R3      
 	    MOV R0, Display
 	    MOV R1, Display_end
 CicloDisplay:  
-	    MOVB R3, [R2]        ; lê o caractere da string 
+	    MOVB R3, [R10]        ; lê o caractere da string 
 	    MOVB [R0], R3        ; escreve o caractere no display 
 	    ADD R0, 1            ; incrementa apontador do display
-	    ADD R2, 1            ; incrementa apontador da string
+	    ADD R10, 1            ; incrementa apontador da string
 	    CMP R0, R1           ; verifica se já chegou ao fim do Display
 	    JLE CicloDisplay
 	    POP R3
-	    POP R2
+	    POP R10
 	    POP R1
 	    POP R0
 	    RET
@@ -216,11 +227,13 @@ OModoBalanca:
 	MOV R3, CHANGE
 	MOV R4, CANCEL
 	MOV R5, PESO
+	MOV R10, DisplayBalancaVazia
 
 	CALL LimpaDisplay
 	CALL LimpaPerifericos
-	CALL MostraBalanca
+	CALL MostraDisplay
 
+BalancaCiclo:
 	; Verifica se CHANGE=1
 	MOVB R6, [R3]
 	MOV R7, 1
@@ -253,32 +266,17 @@ Le_codigo:
 	JGT ERRO_Peso	;se o peso exceder 30kg mostra erro
 ProdutoPesado:
 	
+	JMP BalancaCiclo
 
-	JMP OModoBalanca
-
-MostraBalanca:
-	    PUSH R0
-	    PUSH R1
-	    PUSH R2      ; string
-	    PUSH R3      
-	    MOV R0, Display
-	    MOV R1, Display_end
-	    MOV R2, DisplayBalanca
-CicloBalanca:  
-	    MOVB R3, [R2]        ; le o caractere da string 
-	    MOVB [R0], R3        ; escreve o caractere no display 
-	    ADD R0, 1            ; incrementa apontador do display
-	    ADD R2, 1            ; incrementa apontador da string
-	    CMP R0, R1           ; verifica se já chegou ao fim do Display
-	    JLE CicloBalanca
-	    POP R3
-	    POP R2
-	    POP R1
-	    POP R0
-	    RET
 
 NenhumProdutoSel:
-	JMP OModoBalanca
+	MOVB R6, [R4]		; Le CANCEL
+	CMP R6,1
+	JEQ  Ligado
+	MOVB R6, [R2]
+	CMP R6, 1		; Le OK
+	JNE NenhumProdutoSel
+	JMP MostraProdutos
 
 ERRO_Sel:
 	JMP MostraProdutos
