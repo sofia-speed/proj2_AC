@@ -1,5 +1,6 @@
+PRECO				EQU 	180H
+PRODUTO			EQU		190H
 ; Perifericos
-VOLTAR				EQU		190H
 ON_OFF				EQU		1A0H
 SEL_NR_MENU		EQU		1B0H
 OK					EQU		1C0H
@@ -23,7 +24,6 @@ STACK_PRT			EQU			1000H
 ;preco dos produtos (em centimos!)
 PLACE 4000H
 BaseDados:
-	TABLE 25
 	Word 534
 	Word 187
 	Word 187
@@ -303,16 +303,29 @@ MostraErro:
 	JMP Ligado
 	
 ConverteSel:
+;converte o codigo selecionado na posicao de memoria do produto e preco
 	PUSH R0
 	PUSH R1
 	PUSH R2
+	PUSH R3
 	MOV R0, SEL_NR_MENU
-	MOV R1, [R0]		; R1 = SEL_NR_MENU
+	MOVB R1, [R0]		; R1 = SEL_NR_MENU
 	MOV R2, 100
-	SUB R1, R2		; R1 = R1-100
+	SUB R1, R2		; R1 = R1-100   -> indice do produto
+	MOV R3, R1		; R3 = indice do produto
+	
 	MOV R2, 16
-	MUL R1, R2		; R1 = R1x16
-	ADD R1, NomesProdutos 		; R1 = R1+4200H
+	MUL R1, R2		; R1 = R1 x 16
+	MOV R2, NomesProdutos
+	ADD R1, R2 		; R1 = R1+4200H   -> pos memoria do nome do produto
+	MOV [PRODUTO], R1
+	
+	SHL R3, 1			; R3 = R3 x 2 bytes
+	MOV R2, BaseDados
+	ADD R3, R2	; R3 = R3 + 4000H -> pos memoria preco do produto
+	MOV [PRECO], R3
+	
+	POP R3
 	POP R2
 	POP R1
 	POP R0
