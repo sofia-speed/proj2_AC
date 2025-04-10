@@ -260,8 +260,8 @@ le_peso:
 	CMP R7, R0	
 	JGT ERRO_Peso			;se o peso exceder 30kg
 ProdutoPesado:
-	CALL ConverteSel
-	
+	CALL ConverteSel 
+	CALL AtualizaBalanca	; altera o display da balanca
 	JMP BalancaCiclo
 
 
@@ -314,7 +314,7 @@ ConverteSel:
 	SUB R1, R2		; R1 = R1-100   -> indice do produto
 	MOV R3, R1		; R3 = indice do produto
 	
-	MOV R2, 16
+	MOV R2, Tamanho_String
 	MUL R1, R2		; R1 = R1 x 16
 	MOV R2, NomesProdutos
 	ADD R1, R2 		; R1 = R1+4200H   -> pos memoria do nome do produto
@@ -325,6 +325,52 @@ ConverteSel:
 	ADD R3, R2	; R3 = R3 + 4000H -> pos memoria preco do produto
 	MOV [PRECO], R3
 	
+	POP R3
+	POP R2
+	POP R1
+	POP R0
+	RET
+	
+AtualizaBalanca:
+; atualiza do displaybalanca, para depois ser mostrado no display
+	PUSH R0
+	PUSH R1
+	PUSH R2
+	PUSH R3
+	PUSH R4
+	PUSH R5
+	PUSH R6
+
+	; Copiar o nome do produto para a primeira linha do DisplayBalanca
+	MOV R0, DisplayBalanca 	; R0 = início do DisplayBalanca
+	MOV R1, [PRODUTO] 		; R1 = nome do produto
+	MOV R3, Tamanho_String 	; R3 = tamanho da string (16)
+
+CopiaNome:
+	MOVB R2, [R1] 		; Lê um byte do nome do produto
+	MOVB [R0], R2 		; Escreve byte no DisplayBalanca
+	ADD R0, 1 			;  próxima posição no DisplayBalanca
+	ADD R1, 1 			;  próximo byte do nome do produto
+	SUB R3, 1 			; Decrementa o contador de caracteres
+	JNE CopiaNome 		; Continua até copiar os 16 car.
+
+	; Calcular o endereço da linha do preco
+	MOV R4, DisplayBalanca 	; R4 =  início do DisplayBalanca
+	MOV R5, Tamanho_String 	; R5 = tamanho da string (16)
+	MOV R6, 3
+	MUL R5, R6 			; Multiplica por 3 para chegar ao início da  linha do preco (3 linhas x 16 bytes/linha)
+	ADD R4, R5 			; R4 = início da linha do precp
+
+	; Ler o preço do produto
+	MOV R1, [PRECO] 		; R1 = posicao do preço 
+	MOV R2, [R1] 		; R2 = preço
+
+	; converter o preço para string (e preciso uma rotina)
+	;  converter o valor do preço em caracteres para o display) 
+
+	POP R6
+	POP R5
+	POP R4
 	POP R3
 	POP R2
 	POP R1
