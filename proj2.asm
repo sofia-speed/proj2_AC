@@ -77,6 +77,35 @@ NomesProdutos:
 	String "Noz             "
 	String "Amendoim        "
 	String "Café            "
+	
+	
+PLACE 4400H
+CodigosProdutos:
+	String "Uvas         100"
+	String "Melancia     101"
+	String "Ananás       102"
+	String "Kiwi         103"
+	String "Pêssego      104"
+	String "Banana       105"
+	String "Morango      106"
+	String "Framboesa    107"
+	String "Laranja      108"
+	String "Tangerina    109"
+	String "Cenoura      110"
+	String "Batata       111"
+	String "Nabo         112"
+	String "Beterraba    113"
+	String "Alho         114"
+	String "Cebola       115"
+	String "Ervilha      116"
+	String "Lentilhas    117"
+	String "Trigo        118"
+	String "Milho        119"
+	String "Favas        120"
+	String "Castanhas    121"
+	String "Noz          122"
+	String "Amendoim     123"
+	String "Café         124"
 
 PLACE 2000H
 MenuPrincipal:
@@ -188,7 +217,7 @@ LimpaPerifericos:
 		MOV R0, CANCEL
 		MOVB [R0], R1
 		MOV R0, PESO
-		MOVB [R0], R1
+		MOV [R0], R1
 	
 		POP R1
 		POP R0
@@ -286,10 +315,7 @@ ERRO_Peso:
 
 MostraProdutos:
 		CALL LimpaPerifericos
-CicloProdutos:
-	MOVB R6, [R2]					; le OK
-	CMP R6, 1
-	JNE CicloProdutos		; espera por OK=1 para avancar
+		CALL MostraCodigosProdutos
 	JMP BalancaCiclo
 
 
@@ -567,4 +593,111 @@ ToStringValsFim:
 	POP R5
 	POP R0
 	RET
-	
+
+;------------------------------------;
+;     coloca os codigos do produto no display      ;
+;------------------------------------;
+MostraCodigosProdutos:
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    PUSH R4
+    PUSH R5
+    PUSH R6
+    PUSH R7
+    PUSH R8
+    PUSH R9
+
+    MOV R0, 0              ; Página atual (começa em 0)
+    MOV R1, 25             ; Total de produtos
+    MOV R2, 7              ; Produtos por página
+LoopCodigos:
+    CALL LimpaDisplay
+    MOV R3, R0             ; R3 = página atual
+    MUL R3, R2             ; índice inicial = pagina * 7
+    MOV R4, Tamanho_String
+    MUL R3, R4             ; deslocamento = índice * 16
+    MOV R5, CodigosProdutos
+    ADD R5, R3             ; R5 aponta para o primeiro produto da página
+
+    ; Escrever 7 produtos no display
+    MOV R6, 0              ; contador de linhas (0 a 6)
+    MOV R7, Display
+
+CopiaPagina:
+    CMP R6, R2
+    JGE EsperaInteracao      ; Se já copiou 7 produtos, vai esperar interação
+
+    MOV   R8, 400
+    CMP   R3, R8
+    JGE   EsperaInteracao    ; Se passou do último produto, também espera
+
+    MOV R8, 0               ; contador de caracteres
+    MOV R10, Tamanho_String 
+CopiaProduto:
+    CMP R8, R10
+    JGE ProxProduto
+
+    MOVB R9, [R5]
+    MOVB [R7], R9
+
+    ADD R5, 1
+    ADD R7, 1
+    ADD R8, 1
+
+    JMP CopiaProduto
+
+
+ProxProduto:
+    ADD R6, 1
+    JMP CopiaPagina
+
+EsperaInteracao:
+    CALL LimpaPerifericos
+
+EsperaTecla:
+    ; Verifica CHANGE
+    MOV     R8, CHANGE
+    MOVB    R9, [R8]
+    CMP     R9, 1
+    JEQ     AvancaPagina
+    ; Verifica CANCEL
+    MOV     R8, CANCEL
+    MOVB    R9, [R8]
+    CMP     R9, 1
+    JEQ     VoltaPagina
+    ; Verifica OK
+    MOV     R8, OK
+    MOVB    R9, [R8]
+    CMP     R9,1
+    JEQ      SairMostraCodigos
+    JMP     EsperaTecla
+
+AvancaPagina:
+    ADD R0, 1
+    ; se passou do máximo, volta para a página 0
+    MUL R9, R2         ; R9 = R0 * 7
+    CMP R9, R1
+    JLT LoopCodigos
+    MOV R0, 0
+    JMP LoopCodigos
+
+VoltaPagina:
+    CMP R0, 0
+    JLE LoopCodigos
+    SUB R0, 1
+    JMP LoopCodigos
+
+SairMostraCodigos:
+    POP R9
+    POP R8
+    POP R7
+    POP R6
+    POP R5
+    POP R4
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    RET
