@@ -17,7 +17,8 @@ Tamanho_String		EQU			16
 ;valores
 CODIGO_MIN		EQU		100
 CODIGO_MAX		EQU		124
-PESO_MAX		EQU		30000	;30kg = 30.000g
+PESO_MAX		EQU		300	; 30kg = 30.000g "300" porque
+							; recebemos o valor como decagramas
 
 STACK_PRT			EQU			1000H
 
@@ -341,18 +342,18 @@ ConverteSel:
 	MOV R0, SEL_NR_MENU
 	MOVB R1, [R0]		; R1 = SEL_NR_MENU
 	MOV R2, 100
-	SUB R1, R2		; R1 = R1-100   -> indice do produto
-	MOV R3, R1		; R3 = indice do produto
+	SUB R1, R2			; R1 = R1-100   -> indice do produto
+	MOV R3, R1			; R3 = indice do produto
 	
 	MOV R2, Tamanho_String
-	MUL R1, R2		; R1 = R1 x 16
+	MUL R1, R2			; R1 = R1 x 16
 	MOV R2, NomesProdutos
-	ADD R1, R2 		; R1 = R1+4200H   -> pos memoria do nome do produto
+	ADD R1, R2 			; R1 = R1+4200H   -> pos memoria do nome do produto
 	MOV [PRODUTO], R1
 
 	SHL R3, 1			; R3 = R3 x 2^1 bytes
 	MOV R2, BaseDados
-	ADD R3, R2	; R3 = R3 + 4000H -> pos memoria preco do produto
+	ADD R3, R2			; R3 = R3 + 4000H -> pos memoria preco do produto
 	MOV [PRECO], R3
 	
 	POP R6
@@ -374,6 +375,7 @@ AtualizaBalanca:
 	PUSH R5
 	PUSH R6
 	PUSH R7
+	PUSH R8
 	PUSH R9
 	; Copiar o nome do produto para a primeira linha do DisplayBalanca
 	MOV R0, DisplayBalanca 	; R0 = início do DisplayBalanca
@@ -410,96 +412,44 @@ CalcEnderecoPeso:
 	ADD R4, R5 				; R4 = início da linha do peso
 	; Ler o peso
 	MOV R1, PESO
-	MOVB R5, [R1]
-	CMP R5, 0
-	JNE PesoParaDisplay
-	CALL LimpaPerifericos
+	MOV R5, [R1]
+	
+	MOV R2, PESO_MAX
+	CMP R5, R2
+	JGT PesoAZero
 
 PesoParaDisplay:
 	MOV R8, 1
 	MOV R3, 2
 	MOV R2, R5
 	CALL ToStringVals
+	JMP TotalParaDislplay
+PesoAZero:
+	MOV R8, 1
+	MOV R3, 2
+	MOV R2, 0
+	CALL ToStringVals
+TotalParaDislplay:
 
-CalculaTotalUnit:
-	; calcula o total do peso * preco para um produto
-	; obter o inicio display em R4
 	MOV R4, DisplayBalanca 	; R4 =  início do DisplayBalanca
 	MOV R5, Tamanho_String 	; R5 = tamanho da string (16)
 	MOV R6, 6
 	MUL R5, R6 				; Multiplica por 6 para chegar ao início da  linha do peso (3 linhas x 16 bytes/linha)
 	ADD R4, R5 				; R4 = início da linha do Total
-	; preco * peso
-	; peso
-	MOV R1, PESO
-	MOVB R2, [R1]			; 05h = 5dec != 500g x = PESO
-	; preco
-	MOV R1, [PRECO]
-	MOV R3, [R1]			; D = Preco
 
-MOV R1, 1          ; y = 1
-MOV R0, 0          ; z = 0
-MOV R9, 0          ; counter
+	CALL MultiplicacaoPesoPreco
 
-MOV R1, 1          ; y = 1
-MOV R0, 0          ; z = 0 (result)
-MOV R9, 0          ; counter
+	MOV R1, 150H
+	MOVB [R1], R8
+	MOV R1, 152H
+	MOVB [R1], R9
 
-CalcMultTot:
-    MOV R6, R2
-    MOV R5, 10
-    MOD R6, R5      ; R6 = current digit
-
-    MOV R7, R6
-    MUL R7, R3      ; digit * price
-
-    CMP R9, 2
-    JGT SkipDiv
-
-    ; only divide if it's the first or second digit
-    DIV R7, R5      ; (digit * price) / 10
-
-SkipDiv:
-    MUL R7, R1      ; * y (1, 10, 100...)
-
-    ADD R0, R7      ; accumulate to result (R0)
-
-    CMP R9, 2
-    JGT SkipYupdate
-    MOV R1, 10      ; y = 10
-
-SkipYupdate:
-    DIV R2, R5      ; go to next digit
-    ADD R9, 1       ; count digits processed
-
-    CMP R2, 0
-    JNE CalcMultTot
-
-VerifyRounding:
-	MOV R5, 10
-	MOV R3, R0
-	MOD R3, R5
-	MOV R5, 5
-	CMP R3, R5
-	JLT TotalParaDislplay
-	MOV R5, 10
-	DIV R0, R5
-	ADD R0, 1
-	MUL R0, R5
-
-; chamar ToStringVals
-TotalParaDislplay:
-
-	MOV R5, R0
-	MOV R0, 150H	
-	MOV [R0], R5
-
-	MOV R3, 3
-	MOV R2, R5
-	CALL ToStringVals
+	CALL TotalToString
 
 
+TerminaBalancaDispaly:
 	POP R9
+	POP R8
 	POP R7
 	POP R6
 	POP R5
@@ -515,10 +465,193 @@ TotalParaDislplay:
 	CALL MostraDisplay
 	RET
 
-;---------------------------------------------------;
+;---------------------------------------;
+;  		Multiplicacao Preco*Peso	 	;
+;---------------------------------------;
+
+MultiplicacaoPesoPreco:
+	PUSH R0
+	PUSH R1
+	PUSH R2
+	PUSH R3
+	PUSH R5
+	PUSH R6
+	PUSH R7
+	PUSH R11
+	; R8,R9 Unidade,decimais
+	; preco * peso
+	; peso
+	MOV R0, PESO
+	MOV R1, [R0]
+	; preco
+	MOV R0, [PRECO]
+	MOV R2, [R0]
+
+;-----------------------------------------------------------;
+;	a,bc * d,e = (a*d),(bc*d) + ((a*e)*10) + ((bc*e)/10)	;
+;-----------------------------------------------------------;
+SeparacaoDeUnidades:
+
+	MOV R0, R2		; r3 = preco(pk)
+	MOV	R3, R1		; r1 = peso(P) 
+
+	MOV R6, 100
+	MOV R5, 10
+	
+	MOD R0, R6		; R0 - Preco, decimas (bc)
+	MOD R1, R5		; R1 - Peso, decimas (e)
+	
+	DIV R2, R6		; R2 - Preco, unidades (a)
+	DIV R3, R5		; R3 - Peso, unidades (d)
+MultiplicacoesIndividuais:
+
+	MOV R5, R0		; R5 = R0 = bc
+	MOV R6, R1		; R6 = R1 = e
+	MOV R7, R2		; R7 = R2 = a
+	MOV R11, R3		; R11 = R3 = d
+
+	; a*d	R7
+	MUL R7, R3		; parte inteira
+	; bc*d	R11
+	MUL R11, R0		; parte decimal
+	; a*e	R6
+	MUL R6, R2		; parte decimal
+	; bc*e	R5
+	MUL R5, R1		; parte decimal
+
+TratamentoDeValores:
+
+	MOV R0, 10
+
+	MUL R6, R0				; ajuste para centenas da parte fracionaria do peso
+							; (a*e)*10 => R6
+	DIV R5, R0				; ajuste da multiplicacao de decimais
+							; (bc*e)/10 => R5
+	
+	ADD R6, R5				; R6 + R5 => R6
+	ADD R6, R11				; (bc*d) + R6 => R6
+							; R6 -> parte decimal do resultado
+							; R7 -> parte inteira do resultado
+	MOV R0, 100
+	CMP R6, R0
+	JLT ContinuaAdicao	; se r0 > 100 => 1€ 
+
+VerificaArredondamentoInt:
+	
+	MOV R5, R6				; R5 = R6 = parte decimal
+	
+	MOV R3, 100
+	
+	MOD R5, R3				; obeter ultimos 2 digitos da parte decimal
+	DIV R6, R3				; obeter o carry 
+	ADD R7, R6				; adicionar o carry da parte decimal para a parte inteira
+	MOV R6, R5				; mover o resto das decimas para R6 caso nao seja necessario arredondar
+
+	MOV R3, 10
+	MOV R2, R5
+	MOD R2, R3				; obeter o ultimo digito da parte decimal
+	
+	MOV R0, 5
+	CMP R2, R0				; compara com 5
+	JLT ContinuaAdicao		; r2 >= 5 arredonda para o proximo valor i.e 45 -> 50
+	
+	DIV R5, R3				; i.e 45 -> 4
+	ADD R5, 1				; 4 + 1 = 5
+	MUL R5, R3				; 5 * 10 = 50
+
+
+	MOV R6, R5				; guardar a parte decimal
+
+ContinuaAdicao:
+	
+	MOV R8, R7				; guarda a parte inteira em R8
+	MOV R9, R6				; guarda a parte decimal em R9
+
+TerminaMult:
+	POP R11
+	POP R7
+	POP R6
+	POP R5
+	POP R3
+	POP R2
+	POP R1
+	POP R0
+	RET
+
+;---------------------------------------;
+;   Total para "string" para Display	;
+;---------------------------------------;
+
+TotalToString:
+	PUSH R0
+	PUSH R1
+	PUSH R2
+	PUSH R3
+	PUSH R5
+
+	MOV R5, Tamanho_String
+	SUB R5, 4		; comeco da escrita para o total
+	ADD R4, R5		; inicio do cursur para a posicao de total
+	MOV R0, 10
+	SUB R5, 6		; reserva 6 chars para o texto ja existente
+	MOV R2, 0		; charFilled
+	MOV R3, 48		; '0'
+CalculoDeDecimais:
+	MOV R1, R9
+	
+	MOD R1, R0		; last digit of the value
+	ADD R1, R3		; convert to ASCII
+
+	MOVB [R4], R1	; write R1 in ASCII
+	SUB R4, 1		; next position to write
+	ADD R2, 1		; charFilled + 1
+	
+	DIV R9, R0		; next digit
+
+	CMP R9, 0
+	JNE CalculoDeDecimais
+	
+	MOV R1, 44
+	MOVB [R4], R1
+	SUB R4, 1		; next position to write
+	ADD R2, 1		; charFilled + 1
+	
+CalculoDeInteiros:
+	MOV R1, R8
+
+	MOD R1, R0
+	ADD R1, R3
+
+	MOVB [R4], R1	; write R1 in ASCII
+	SUB R4, 1		; next position to write
+	ADD R2, 1		; charFilled + 1
+	
+	DIV R8, R0		; next digit
+
+	CMP R8, 0
+	JNE CalculoDeInteiros
+VerificaTotFim:
+	CMP R2, R5
+	JEQ TotalToStrigFim
+	
+	MOV R1, CaracterVazio
+
+	MOVB [R4], R1	; write R1 in ASCII
+	SUB R4, 1		; next position to write
+	ADD R2, 1		; charFilled + 1
+	JMP VerificaTotFim
+TotalToStrigFim:
+	POP R5
+	POP R3
+	POP R2
+	POP R1
+	POP R0
+	RET
+;-----------------------------------------------------------;
 ;  ToStringVals, R3-CharactersToSkip, R2-ValorToStringVals 	;
-;  													;
-;---------------------------------------------------;
+;-----------------------------------------------------------;
+; usado para preco e peso
+; para o total e necessario outro metodo devido ao metodo de clacular
 ToStringVals:
 	PUSH R0
 	PUSH R5
@@ -532,15 +665,15 @@ ToStringVals:
 	MOV R0, 0 		; charFilled
 	MOV R5, R2		; x para x/10
 CalcResto:	
-	MOV R6, R5		; x para x%10
+	MOV R6, R5		; copia de x para retirar digit
 	MOV R2, 10
-	DIV R5, R2
-	MOD R6, R2
+	DIV R5, R2		; x / 10
+	MOD R6, R2		; digit % 10
 	MOV R2, 48		; 48 ASCII = '0'
 	ADD R6, R2		; +48 da o char do valor R6 en ASCII
 	MOVB [R4], R6	; Escreve
-	SUB R4, 1
-	ADD R0, 1
+	SUB R4, 1		; posicao de escrita -1
+	ADD R0, 1		; +1 charFilled
 	CMP R8, 1
 	JNE DefaultA	; if R8!=1 continua normalmente
 	MOV R2, 1
