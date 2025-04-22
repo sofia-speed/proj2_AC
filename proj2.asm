@@ -9,10 +9,10 @@ CANCEL				EQU		1E0H
 PESO				EQU		1F0H
 
 ; Display
-Display				EQU			200H
-Display_end 		EQU			26FH
-CaracterVazio 		EQU 		20H	
-Tamanho_String		EQU			16
+Display				EQU		200H
+Display_end 		EQU		26FH
+CaracterVazio 		EQU 	20H	
+Tamanho_String		EQU		16
 
 ;valores
 CODIGO_MIN		EQU		100
@@ -21,6 +21,8 @@ PESO_MAX		EQU		300	; 30kg = 30.000g "300" porque
 							; recebemos o valor como decagramas
 
 STACK_PRT			EQU			1000H
+REG_BANK_PTR		EQU			5000H	; pointer para o comeco do banco de registo
+N_REG_IN_BANK		EQU			4FF0H	; informacao de quantos registos o banco tem
 
 ;preco dos produtos (em centimos!)
 PLACE 4000H
@@ -315,15 +317,17 @@ ERRO_Peso:
 	JMP le_peso
 
 MostraProdutos:
-		CALL LimpaPerifericos
-		CALL MostraCodigosProdutos
+	CALL LimpaPerifericos
+	CALL MostraCodigosProdutos
 	JMP BalancaCiclo
 
 
 ORegistos:
+	CALL MostraRegistos
 	JMP Ligado
 	
 OLimpaRegistos:
+	CALL LimarRegistos
 	JMP Ligado
 	
 MostraErro:
@@ -377,11 +381,15 @@ AtualizaBalanca:
 	PUSH R7
 	PUSH R8
 	PUSH R9
+InicioAtualizaBalanca:
 	; Copiar o nome do produto para a primeira linha do DisplayBalanca
 	MOV R0, DisplayBalanca 	; R0 = início do DisplayBalanca
 	MOV R1, [PRODUTO] 		; R1 = nome do produto
 	MOV R3, Tamanho_String 	; R3 = tamanho da string (16)
-
+	MOV R4, CANCEL
+	MOVB R2, [R4]
+	CMP R2, 1
+	JEQ TerminaBalancaDispaly
 CopiaNome:
 	MOVB R2, [R1] 		; Lê um byte do nome do produto
 	MOVB [R0], R2 		; Escreve byte no DisplayBalanca
@@ -429,6 +437,9 @@ PesoAZero:
 	MOV R3, 2
 	MOV R2, 0
 	CALL ToStringVals
+	MOV R2, 0
+	MOV R1, PESO
+	MOV [R1], R2
 TotalParaDislplay:
 
 	MOV R4, DisplayBalanca 	; R4 =  início do DisplayBalanca
@@ -439,13 +450,22 @@ TotalParaDislplay:
 
 	CALL MultiplicacaoPesoPreco
 
-	MOV R1, 150H
-	MOVB [R1], R8
-	MOV R1, 152H
-	MOVB [R1], R9
-
 	CALL TotalToString
 
+	;-----------------;
+	;	Muda Display  ;
+	;-----------------;
+	MOV R10, DisplayBalanca
+	CALL MostraDisplay
+
+VerificaSalvarRegisto:
+
+	MOV R1, CHANGE
+	MOVB R2, [R1]			; le se o botao change foi selecionado
+
+	CMP R2, 1
+	JNE InicioAtualizaBalanca
+	CALL GuardaEmBancoDeRegistos
 
 TerminaBalancaDispaly:
 	POP R9
@@ -458,11 +478,7 @@ TerminaBalancaDispaly:
 	POP R2
 	POP R1
 	POP R0
-	;-----------------;
-	;	Muda Display  ;
-	;-----------------;
-	MOV R10, DisplayBalanca
-	CALL MostraDisplay
+
 	RET
 
 ;---------------------------------------;
@@ -581,7 +597,6 @@ TerminaMult:
 ;---------------------------------------;
 ;   Total para "string" para Display	;
 ;---------------------------------------;
-
 TotalToString:
 	PUSH R0
 	PUSH R1
@@ -794,22 +809,31 @@ EsperaTecla:
     MOV     R8, CHANGE
     MOVB    R9, [R8]
     CMP     R9, 1
-    JEQ     AvancaPagina
+    JEQ     VoltaPagina
     ; Verifica CANCEL
     MOV     R8, CANCEL
     MOVB    R9, [R8]
     CMP     R9, 1
-    JEQ     VoltaPagina
-    ; Verifica OK
-    MOV     R8, OK
-    MOVB    R9, [R8]
-    CMP     R9,1
-    JEQ      SairMostraCodigos
-    JMP     EsperaTecla
+    JEQ     SairMostraCodigos
+	; Verifica OK
+	MOV     R8, OK
+	MOVB    R9, [R8]
+	CMP     R9, 1
+	JNE     EsperaTecla        ; Se não está pressionado, volta
+
+	; Se está pressionado, verifica PRODUTO
+	MOV     R8, SEL_NR_MENU
+	MOV     R9, [R8]
+	CMP     R9, 0
+	JEQ     AvancaPagina       ; Se PRODUTO == 0, avança a página
+	JMP     SairMostraCodigos  ; Caso contrário, sai do loop
+
+
 
 AvancaPagina:
     ADD R0, 1
     ; se passou do máximo, volta para a página 0
+	MOV R9, R0
     MUL R9, R2         ; R9 = R0 * 7
     CMP R9, R1
     JLT LoopCodigos
@@ -834,3 +858,200 @@ SairMostraCodigos:
     POP R1
     POP R0
     RET
+
+;---------------------------------------;
+;   	Salvar Para registos			;
+;---------------------------------------;
+
+GuardaEmBancoDeRegistos:
+	PUSH R0
+	PUSH R1
+	PUSH R2
+	PUSH R3
+	PUSH R4
+	PUSH R5
+	PUSH R6
+	PUSH R7
+
+	MOV R0, REG_BANK_PTR		; guardar pointer para o inicio do banco de registo
+	MOV R1, Display				; guardar pointer para display
+	
+	MOV R4, Tamanho_String		; "comprimento" do display
+	MOV R6, 7					; "altura" do display
+	MUL R4, R6					; como o display 7 por 16, 7*16 para obeter o unicio do proximo registo quando adicionado ao pointer do banco
+	
+	MOV R6, N_REG_IN_BANK
+	MOVB R5, [R6]				; R5 numero de registos no banco de registos
+	MUL R4, R5					; R5 * tamanhoDisplay = saltos que o pointer R0 vai fazer para chegar ao ultimo registo guardado
+	
+	ADD R0, R4					; salta para a nova posicao
+CopiaDisplayParaRegisto:
+
+	MOVB R2, [R1]				; le um byte e guarda em r2
+	MOVB [R0], R2				; copia o byte guardado para o banco de registo
+
+	ADD R1, 1					; passa ao proximo byte para copiar
+	ADD R0, 1					; passa ao proximo byte para onde copiar
+
+	MOVB R3, [R1]				; verificacao se chegou ao fim do display
+	CMP R3, 0
+	JNE CopiaDisplayParaRegisto	; se nao for 00h continua a copiar
+TerminaCopiaBancoReg:
+
+	ADD R5, 1
+	MOVB [R6], R5				; atualiza quantos registos tem o banco
+
+	POP R7
+	POP R6
+	POP R5
+	POP R4
+	POP R3
+	POP R2
+	POP R1
+	POP R0
+	RET
+
+;---------------------------------------;
+;   	Limpar todos ors registos		;
+;---------------------------------------;
+LimarRegistos:
+	PUSH R0
+	PUSH R1
+	PUSH R2
+	PUSH R3
+	PUSH R4
+	PUSH R5
+	PUSH R6
+	PUSH R7
+
+	MOV R0, REG_BANK_PTR		; guardar pointer para o inicio do banco de registo
+	
+	MOV R4, Tamanho_String		; "comprimento" do display
+	MOV R6, 7					; "altura" do display
+	MUL R4, R6					; como o display 7 por 16, 7*16 para obeter o unicio do proximo registo quando adicionado ao pointer do banco
+	
+	MOV R6, N_REG_IN_BANK
+	MOVB R5, [R6]				; R5 numero de registos no banco de registos
+	MUL R4, R5					; R5 * tamanhoDisplay = saltos que o pointer R0 vai fazer para chegar ao ultimo registo guardado
+	
+	ADD R0, R4					; R0 -> ultima posicao dos registos
+
+	MOV R1, REG_BANK_PTR		; R1, inicio do registo
+	MOV R2, 0
+ClearReg:
+	MOVB [R1], R2
+
+	ADD R1, 1
+
+	CMP R1, R0
+	JNE ClearReg
+
+	MOV R5, 0
+	MOVB [R6], R5				; atualiza quantos registos tem o banco
+
+	POP R7
+	POP R6
+	POP R5
+	POP R4
+	POP R3
+	POP R2
+	POP R1
+	POP R0
+	RET
+
+;---------------------------------------;
+;   	Mostrar todos ors registos		;
+;---------------------------------------;
+MostraRegistos:
+	PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    PUSH R4
+    PUSH R5
+    PUSH R6
+    PUSH R7
+    PUSH R8
+    PUSH R9
+
+    MOV R1, N_REG_IN_BANK
+	MOVB R2, [R1]           	; Total de registos
+	MOV R0, 0               	; Registo atual (começa em 1)
+
+
+LoopRegistos:
+	CALL LimpaDisplay
+	MOV R3, 7             		; "altura" do display
+	MOV R5, Tamanho_String		; "comprimento" do display
+	
+	MUL R5, R3					; altura do salto, 16*7 -> proximo registo
+	MUL R5, R0
+	
+	MOV R4, REG_BANK_PTR		; pointer para o inicio dos registos
+	MOV R7, Display
+	ADD R4, R5
+CopiarRegisto:
+	
+	MOVB R1, [R4]				; le um byte e guarda em r1
+	MOVB [R7], R1				; copia o byte guardado para o banco de registo
+
+	ADD R4, 1					; passa ao proximo byte para copiar
+	ADD R7, 1					; passa ao proximo byte para onde copiar
+
+	MOVB R3, [R7]				; verificacao se chegou ao fim do display
+	CMP R3, 0
+	JNE CopiarRegisto	; se nao for 00h continua a copiar
+
+EsperaInteracaoReg:
+    CALL LimpaPerifericos
+
+EsperaTeclaReg:
+    ; Verifica CHANGE
+    MOV     R8, CHANGE
+    MOVB    R9, [R8]
+    CMP     R9, 1
+    JEQ     VoltaPaginaReg
+    ; Verifica CANCEL
+    MOV     R8, CANCEL
+    MOVB    R9, [R8]
+    CMP     R9, 1
+    JEQ     SairMostraRegistos
+	; Verifica OK
+	MOV     R8, OK
+	MOVB    R9, [R8]
+	CMP     R9, 1
+	JNE     EsperaTeclaReg        ; Se não está pressionado, volta
+
+	; Se está pressionado, verifica PRODUTO
+	MOV     R8, SEL_NR_MENU
+	MOV     R9, [R8]
+	CMP     R9, 0
+	JEQ     AvancaPaginaReg       ; Se PRODUTO == 0, avança a página
+	JMP     SairMostraRegistos  ; Caso contrário, sai do loop
+
+AvancaPaginaReg:
+	ADD R0, 1
+	CMP R0, R2
+	JLT LoopRegistos
+	MOV R0, 0
+	JMP LoopRegistos
+
+VoltaPaginaReg:
+	CMP R0, 0
+	JEQ LoopRegistos
+	SUB R0, 1
+	JMP LoopRegistos
+
+SairMostraRegistos:
+	POP R9
+    POP R8
+    POP R7
+    POP R6
+    POP R5
+    POP R4
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    RET
+
