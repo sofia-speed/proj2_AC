@@ -151,6 +151,7 @@ Principio:
 		MOV SP, STACK_PRT
 		CALL LimpaDisplay
 		CALL LimpaPerifericos
+		CALL LimarRegistos
 		MOV R0, ON_OFF
 Liga:
 		MOVB R1, [R0]			; Le periferico ON_OFF
@@ -266,6 +267,10 @@ OModoBalanca:
 	CALL MostraDisplay
 
 BalancaCiclo:
+	; verifica se CANCEL=1
+	MOVB R6, [R4]
+	CMP R6,1
+	JEQ Ligado
 	; Verifica se CHANGE=1
 	MOVB R6, [R3]
 	CMP R6, 1
@@ -320,7 +325,6 @@ MostraProdutos:
 	CALL LimpaPerifericos
 	CALL MostraCodigosProdutos
 	JMP BalancaCiclo
-
 
 ORegistos:
 	CALL MostraRegistos
@@ -393,8 +397,8 @@ InicioAtualizaBalanca:
 CopiaNome:
 	MOVB R2, [R1] 		; Lê um byte do nome do produto
 	MOVB [R0], R2 		; Escreve byte no DisplayBalanca
-	ADD R0, 1 			;  próxima posição no DisplayBalanca
-	ADD R1, 1 			;  próximo byte do nome do produto
+	ADD R0, 1 			; próxima posição no DisplayBalanca
+	ADD R1, 1 			; próximo byte do nome do produto
 	SUB R3, 1 			; Decrementa o contador de caracteres
 	JNE CopiaNome 		; Continua até copiar os 16 car.
 
@@ -484,7 +488,6 @@ TerminaBalancaDispaly:
 ;---------------------------------------;
 ;  		Multiplicacao Preco*Peso	 	;
 ;---------------------------------------;
-
 MultiplicacaoPesoPreco:
 	PUSH R0
 	PUSH R1
@@ -862,7 +865,6 @@ SairMostraCodigos:
 ;---------------------------------------;
 ;   	Salvar Para registos			;
 ;---------------------------------------;
-
 GuardaEmBancoDeRegistos:
 	PUSH R0
 	PUSH R1
@@ -933,7 +935,8 @@ LimarRegistos:
 	MOV R6, N_REG_IN_BANK
 	MOVB R5, [R6]				; R5 numero de registos no banco de registos
 	MUL R4, R5					; R5 * tamanhoDisplay = saltos que o pointer R0 vai fazer para chegar ao ultimo registo guardado
-	
+	CMP R5, 0
+	JEQ fimClearReg
 	ADD R0, R4					; R0 -> ultima posicao dos registos
 
 	MOV R1, REG_BANK_PTR		; R1, inicio do registo
@@ -945,7 +948,7 @@ ClearReg:
 
 	CMP R1, R0
 	JNE ClearReg
-
+fimClearReg:
 	MOV R5, 0
 	MOVB [R6], R5				; atualiza quantos registos tem o banco
 
