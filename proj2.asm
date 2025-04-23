@@ -162,12 +162,17 @@ Ligado:
 		CALL MostraDisplay
 		CALL LimpaPerifericos
 Le_nr:
+		MOV R0, ON_OFF
+		MOVB R1, [R0]			; Le periferico ON_OFF
+		CMP R1, 0
+		JEQ Principio
 		MOV R0, SEL_NR_MENU
 		MOV R2, OK				; verifica que OK foi selecionado
 		MOVB R3, [R2]
 		
 		CMP R3, 1				; nao avanca enquanto OK=0
 		JNE Le_nr
+		
 		MOVB R1, [R0]	 		; Le o valor do periferico
 		CMP R1, 1      
 		JEQ OModoBalanca
@@ -209,9 +214,7 @@ LimpaPerifericos:
 		PUSH R0
 		PUSH R1
 		
-		MOV R0, ON_OFF
 		MOV R1, 0
-		MOVB [R0], R1
 		MOV R0, SEL_NR_MENU
 		MOVB [R0], R1
 		MOV R0, OK
