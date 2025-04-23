@@ -151,12 +151,15 @@ Principio:
 		MOV SP, STACK_PRT
 		CALL LimpaDisplay
 		CALL LimpaPerifericos
+		MOV R0, ON_OFF
+		MOV R1, 0
+		MOVB [R0], R1
 		CALL LimarRegistos
 		MOV R0, ON_OFF
 Liga:
 		MOVB R1, [R0]			; Le periferico ON_OFF
 		CMP R1, 1				
-		JNE Liga
+		JNE Liga				; espera ON_OFF = 1  para avançar
 Ligado:	
 		MOV R10, MenuPrincipal
 		CALL MostraDisplay
@@ -165,7 +168,7 @@ Le_nr:
 		MOV R0, ON_OFF
 		MOVB R1, [R0]			; Le periferico ON_OFF
 		CMP R1, 0
-		JEQ Principio
+		JEQ Principio			; desliga balança se ON_OFF = 0
 		MOV R0, SEL_NR_MENU
 		MOV R2, OK				; verifica que OK foi selecionado
 		MOVB R3, [R2]
@@ -215,15 +218,15 @@ LimpaPerifericos:
 		PUSH R1
 		
 		MOV R1, 0
-		MOV R0, SEL_NR_MENU
+		MOV R0, SEL_NR_MENU 	; limpa SEL_NR_MENU
 		MOVB [R0], R1
-		MOV R0, OK
+		MOV R0, OK				; limpa OK
 		MOVB [R0], R1
-		MOV R0, CHANGE
+		MOV R0, CHANGE			; limpa CHANGE
 		MOVB [R0], R1
-		MOV R0, CANCEL
+		MOV R0, CANCEL			; limpa CANCEL
 		MOVB [R0], R1
-		MOV R0, PESO
+		MOV R0, PESO			; limpa PESO
 		MOV [R0], R1
 	
 		POP R1
@@ -298,7 +301,7 @@ le_peso:
 	MOV R7, [R5]				; R7 = PESO
 	MOV R0, PESO_MAX	
 	CMP R7, R0	
-	JGT ERRO_Peso				;se o peso exceder 30kg
+	JGT ERRO_Peso				; se o peso exceder 30kg
 ProdutoPesado:
 	CALL ConverteSel 
 	CALL AtualizaBalanca		; altera o display da balanca
@@ -310,7 +313,7 @@ NenhumProdutoSel:
 	CALL MostraDisplay
 	MOVB R6, [R4]				; Le CANCEL
 	CMP R6,1
-	JEQ  Ligado
+	JEQ  Ligado					; se CANCEL = 1, vai para menu principal
 	MOVB R6, [R2]
 	CMP R6, 1					; Le OK
 	JNE NenhumProdutoSel		; espera ate OK = 1 para avancar
